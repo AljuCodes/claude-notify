@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      match /status/{doc} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    match /sessions/{sessionId} {
+      allow read: if request.auth != null
+                  && resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null
+                    && resource.data.userId == request.auth.uid;
+      allow create, update: if false; // Admin SDK only
+
+      match /events/{eventId} {
+        allow read: if request.auth != null
+                    && get(/databases/$(database)/documents/sessions/$(sessionId)).data.userId
+                       == request.auth.uid;
+
+        // Flutter app may only update response, decision, and status fields
+        allow update: if request.auth != null
+                      && get(/databases/$(database)/documents/sessions/$(sessionId)).data.userId
+                         == request.auth.uid
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['response', 'decision', 'status']);
+
+        allow delete: if request.auth != null
+                      && get(/databases/$(database)/documents/sessions/$(sessionId)).data.userId
+                         == request.auth.uid;
+
+        allow create: if false; // Admin SDK only
+      }
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "1015909307410",
+    "project_id": "claude-notify-41f99",
+    "storage_bucket": "claude-notify-41f99.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1015909307410:android:7f409de0ae2a363c9c74cb",
+        "android_client_info": {
+          "package_name": "com.claudenotify.claude_notify_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1015909307410-r99lu59v0vff3teh0o2t2gbldjoof0jt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.claudenotify.claude_notify_app",
+            "certificate_hash": "04a88aa95c3c76504a03e6d3a7881b8d2355876a"
+          }
+        },
+        {
+          "client_id": "1015909307410-0t5vasg0v272anusufpelqft3jv9koqg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAx9yZJudJGhNikj7ju9p7agRTxsungom0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1015909307410-0t5vasg0v272anusufpelqft3jv9koqg.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1015909307410-ahvtgv428gjk2bfqmf2gdfh6j9rndon5.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.claudenotify.claudeNotifyApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

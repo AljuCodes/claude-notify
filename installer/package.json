@@ -1,0 +1,21 @@
+{
+  "name": "claude-notify-setup",
+  "version": "1.0.0",
+  "description": "One-click setup for Claude Notify mobile notifications",
+  "bin": {
+    "claude-notify-setup": "./setup.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "dotenv": "^16.4.0"
+  },
+  "files": [
+    "setup.js",
+    "hooks/bridge.js",
+    "hooks/stop.js",
+    "hooks/pre-tool-use.js",
+    "hooks/post-tool-use.js",
+    "hooks/notification.js",
+    "service-account-key.json"
+  ]
+}
