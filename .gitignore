@@ -49,6 +49,8 @@ app.*.map.json
 serviceAccountKey.json
 service-account-key.json
 GoogleService-Info.plist
+lib/firebase_options.dart
+android/app/google-services.json
 
 # Installer
 installer/node_modules/
