@@ -31,7 +31,7 @@ Mobile notification system for Claude Code. Get push notifications on your phone
 - **Flutter app** listens to Firestore for real-time updates and displays activity
 - Notifications only send when user is marked "Away from desk" in the app
 
-## Quick Setup (For Team Members)
+## Quick Setup (Single Command)
 
 ### Prerequisites
 
@@ -41,27 +41,72 @@ Mobile notification system for Claude Code. Get push notifications on your phone
 
 ### 1. Install the mobile app
 
-Download the APK from your team's distribution channel and install it on your phone. Sign in with Google.
+Get the `app-release.apk` from your team lead and install it on your Android phone. Open the app and sign in with Google.
 
 ### 2. Run the installer
 
+Your team lead will share a `claude-notify-setup-1.0.0.tgz` file. Download it and run:
+
 ```bash
-cd installer
-npm install
-node setup.js
+npx ./claude-notify-setup-1.0.0.tgz
 ```
 
-The installer will:
+That's it. The installer will:
 - Ask for your Firebase UID (shown in the app after sign-in)
 - Copy hook scripts to `~/.claude/hooks/`
 - Install dependencies (firebase-admin, dotenv)
+- Bundle the Firebase service account key
 - Configure Claude Code settings
 
 ### 3. You're done
 
-- Open the app and toggle "Away from desk" when you leave your computer
+- Open the app and toggle **"Away from desk"** when you leave your computer
 - Claude Code will send push notifications for task completions and permission requests
 - Open any session in the app to see the live activity feed
+
+## For Team Leads — Building the Installer
+
+If you're distributing Claude Notify to your team, you need to build the installer package and the APK.
+
+### Build the installer `.tgz`
+
+The installer bundles all hooks + Firebase credentials into a single file:
+
+```bash
+cd installer
+npm install
+node build.js
+```
+
+This produces `claude-notify-setup-1.0.0.tgz` (~9 KB). It automatically finds your `serviceAccountKey.json` from:
+- `installer/service-account-key.json`
+- Project root `serviceAccountKey.json`
+- `~/.claude/hooks/serviceAccountKey.json`
+
+### Build the APK
+
+```bash
+flutter build apk --release
+```
+
+Output: `build/app/outputs/flutter-apk/app-release.apk` (~51 MB)
+
+### Distribute to your team
+
+Share two files internally (Slack, Google Drive, etc.) — **never commit credentials to a public repo**:
+
+1. `app-release.apk` — Android app
+2. `claude-notify-setup-1.0.0.tgz` — One-command hook installer
+
+Sample message for your team:
+
+> **Claude Notify — Mobile Notifications for Claude Code**
+>
+> 1. Install the APK on your phone, sign in with Google
+> 2. Copy your UID from the home screen
+> 3. Run: `npx ./claude-notify-setup-1.0.0.tgz`
+> 4. Paste your UID when prompted — done!
+> 5. Toggle "Away from desk" in the app when you leave
 
 ## Manual Setup
 
@@ -78,12 +123,12 @@ npm install firebase-admin dotenv
 
 ### 2. Copy hook files
 
-Copy these files to `~/.claude/hooks/`:
+Copy these files from `installer/hooks/` to `~/.claude/hooks/`:
 - `bridge.js` — Firebase Admin bridge (FCM + Firestore)
-- `stop_hook.sh` — Task finish / question detection
-- `pre_tool_use_hook.sh` — Destructive command gating
-- `post_tool_use_hook.sh` — Activity tracking
-- `notification_hook.sh` — Notification passthrough (disabled)
+- `stop.js` — Task finish / question detection
+- `pre-tool-use.js` — Destructive command gating
+- `post-tool-use.js` — Activity tracking
+- `notification.js` — Notification passthrough (disabled to prevent spam)
 
 ### 3. Configure environment
 
@@ -105,7 +150,7 @@ Add hooks to `~/.claude/settings.json`:
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "~/.claude/hooks/stop_hook.sh" }
+          { "type": "command", "command": "node ~/.claude/hooks/stop.js" }
         ]
       }
     ],
@@ -113,14 +158,21 @@ Add hooks to `~/.claude/settings.json`:
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "command", "command": "~/.claude/hooks/pre_tool_use_hook.sh" }
+          { "type": "command", "command": "node ~/.claude/hooks/pre-tool-use.js" }
         ]
       }
     ],
     "PostToolUse": [
       {
         "hooks": [
-          { "type": "command", "command": "~/.claude/hooks/post_tool_use_hook.sh" }
+          { "type": "command", "command": "node ~/.claude/hooks/post-tool-use.js" }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node ~/.claude/hooks/notification.js" }
         ]
       }
     ]
@@ -145,6 +197,7 @@ Add hooks to `~/.claude/settings.json`:
 - **Stop** — Fires when Claude finishes responding. Detects if the last message is a question (routes to phone for reply) or a completion (sends finish notification).
 - **PreToolUse** — Fires before each tool call. Gates destructive Bash commands through phone approval when away. Auto-allows everything else so Claude keeps working.
 - **PostToolUse** — Fires after each tool call. Captures activity (commands run, files edited, search results) as markdown-formatted events in Firestore for the live feed.
+- **Notification** — Disabled (just exits). Claude Code fires these too frequently; task notifications are handled by the Stop hook instead.
 
 ### Activity Feed
 
@@ -182,12 +235,21 @@ claude_notify_app/
 │       ├── presence_toggle.dart
 │       ├── session_card.dart
 │       └── event_tile.dart
-├── installer/                    # One-click installer
-│   ├── setup.js
-│   ├── hooks/
-│   └── package.json
+├── installer/                    # Installer & build tools
+│   ├── setup.js                  # Interactive installer script
+│   ├── build.js                  # Builds .tgz package for distribution
+│   ├── package.json
+│   └── hooks/                    # Cross-platform JS hooks
+│       ├── bridge.js
+│       ├── stop.js
+│       ├── pre-tool-use.js
+│       ├── post-tool-use.js
+│       └── notification.js
 ├── android/
 ├── ios/
+├── firebase/
+│   ├── firestore.rules
+│   └── firestore.indexes.json
 └── assets/
     └── app_icon.png
 ```
@@ -200,14 +262,18 @@ If you're setting up a new Firebase project:
 2. Enable **Authentication** (Google sign-in provider)
 3. Enable **Cloud Firestore**
 4. Enable **Cloud Messaging**
-5. Add an Android app and download `google-services.json`
-6. Generate a service account key (Project Settings > Service Accounts)
-7. Deploy Firestore security rules from `firebase/firestore.rules`
+5. Add an Android app and download `google-services.json` → place in `android/app/`
+6. Run `flutterfire configure` to generate `lib/firebase_options.dart`
+7. Generate a service account key (Project Settings > Service Accounts) → used by the installer
+8. Deploy Firestore security rules from `firebase/firestore.rules`
+
+> **Note:** `google-services.json`, `firebase_options.dart`, and `serviceAccountKey.json` are gitignored. Each developer/admin must configure these locally.
 
 ## Tech Stack
 
 - **Mobile App**: Flutter + Firebase (Auth, Firestore, Cloud Messaging)
-- **Hooks**: Node.js + Firebase Admin SDK
+- **Hooks**: Node.js + Firebase Admin SDK (cross-platform, no bash/python dependencies)
 - **Notifications**: FCM (notification+data messages) + flutter_local_notifications
 - **UI**: Material 3, Catppuccin Mocha dark theme
 - **State**: Firestore real-time listeners
+- **Installer**: Single `.tgz` package via `npm pack`

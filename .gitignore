@@ -55,6 +55,8 @@ android/app/google-services.json
 # Installer
 installer/node_modules/
 installer/package-lock.json
+installer/*.tgz
+installer/service-account-key.json
 
 # Misc
 app_icon_new.png
